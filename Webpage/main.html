@@ -1,0 +1,193 @@
+<!doctypehtml>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>AC Monitor</title>
+  <style>
+    body {
+      text-align: center
+    }
+
+    div.ac,
+    div.meter {
+      display: inline-grid;
+      gap: 10px
+    }
+
+    div.ac>div,
+    div.meter>div {
+      padding: 10px;
+      width: 300px;
+      border: 1px solid green;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 2em;
+      background: #eee
+    }
+
+    div.ac {
+      margin: 0 50px
+    }
+
+    div.ac>div:hover,
+    div.meter>div:hover {
+      background: #ffeb3b
+    }
+
+    #bulb {
+      width: 25px;
+      height: 25px;
+      background: #9e9e9e;
+      border-radius: 100%;
+      position: absolute;
+      top: 25px;
+      right: 25px
+    }
+
+    #bulb.on {
+      background: #03a9f4
+    }
+
+    #acRange {
+      width: 300px
+    }
+  </style>
+  <div id=bulb></div>
+
+  <div class=meter>
+    <div id=voltage>0 V</div>
+    <div id=Ampere>0 A</div>
+    <div id="watt">0 W|0 VA <br>0 PF </div>
+    <div id=kwh>0 Kwh</div>
+    <div>Time&nbsp<span id=acTime>00:00</span></div>
+    </br>
+    <div id=tot_kwh>Total 0 Kwh</div>
+    <div>Time&nbsp<span id=tot_acTime>00:00</span></div>
+  </div>
+
+  <div class=ac>
+    <div>Power:<span id=iPower></span></div>
+    <div>Mode:<span id=iMode></span></div>
+    <div>Temp:<span id=iTemp></span></div>
+    <div>Fan Speed:<span id=iFan></span></div>
+    <div>SwingV:<span id=iSwingV></span></div>
+    <div>SwingH:<span id=iSwingH></span></div>
+    <div>Light:<span id=iLight></span></div>
+    <div>Clean:<span id=iClean></span></div>
+    <div>Turbo:<span id=iTurbo></span></div>
+    <div>iFeel:<span id=iFeel></span></div>
+  </div>
+
+  <div class=meter>
+    <div id="temp">0 C</div>
+    <div id="temp_adc">0 C</div>
+  </div>
+
+  <br>
+  <br>
+  <div class="slidecontainer">
+    <input type="range" min="16" max="32" value="26" class="slider" id="acRange">
+    <p>Temp: <span id="acRangeVal"></span>
+    </p>
+  </div>
+  <button class="btn" onclick="location.href='/webserial' ">Web Serial</button>| <button class="btn"
+    onclick=turnAcOn()>AC
+    On</button>| <button class="btn" onclick="location.href='/acoff' ">AcOff</button>
+  <div id="error"></div>
+  <script>
+    var slider = document.getElementById("acRange");
+    var output = document.getElementById("acRangeVal");
+    function u(id, val) {
+      document.getElementById(id).innerHTML = val;
+    }
+
+    function off() {
+      setTimeout(() => {
+        document.getElementById("bulb").classList.remove("on");
+      }, 500);
+    }
+
+    function turnAcOn() {
+      var xhttp = new XMLHttpRequest();
+      xhttp.open("GET", '/acon?temp=' + slider.value, !0);
+      xhttp.send()
+    };
+
+    var acTemp = 26;
+    var updateTimeout;
+    function updateAcRange() {
+      if (acTemp < 16) { acTemp = 26; }
+
+      slider.value = acTemp;
+      output.innerHTML = slider.value;
+      updateTimeout = setTimeout(updateAcRange, 1000)
+    };
+
+    function stopUpdate() {
+      clearTimeout(updateTimeout);
+    }
+
+    function restartUpdate() {
+      updateTimeout = setTimeout(updateAcRange, 5000);
+    }
+
+    slider.addEventListener("input", stopUpdate);
+    slider.addEventListener("change", restartUpdate);
+
+    function msToTime(duration) {
+      let milliseconds = parseInt((duration % 1000) / 100),
+        seconds = Math.floor((duration / 1000) % 60),
+        minutes = Math.floor((duration / (1000 * 60)) % 60),
+        hours = Math.floor(duration / (1000 * 60 * 60));
+
+      let formattedHours = hours.toLocaleString();
+      let formattedMinutes = (minutes < 10) ? "0" + minutes : minutes;
+      let formattedSeconds = (seconds < 10) ? "0" + seconds : seconds;
+
+      return formattedHours + ":" + formattedMinutes + ":" + formattedSeconds;
+    }
+
+    function getDate() {
+      var x = new XMLHttpRequest();
+      x.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+          try {
+            document.getElementById("bulb").classList.add("on");
+            const obj = JSON.parse(x.responseText);
+            u("voltage", obj.voltage + " V");
+            u("Ampere", obj.ampere + " A");
+            var _watt = obj.watt + " W | " + obj.VA + " VA <br>" + obj.powerFactor.toFixed(2) + "PF ";
+            u("watt", _watt);
+            u("kwh", obj.kwh + " Kwh");
+            u("tot_kwh", "Total  " + obj.total_kwh + " Kwh");
+            u("iPower", obj.iPower);
+            u("iMode", obj.iMode);
+            u("iTemp", obj.iTemp + " C");
+            u("iFan", obj.iFan);
+            u("iSwingV", obj.iSwingV);
+            u("iSwingH", obj.iSwingH);
+            u("iLight", obj.iLight);
+            u("iClean", obj.iClean);
+            u("iTurbo", obj.iTurbo);
+            u("iFeel", obj.iFeel);
+            u("temp", obj.temp + " C");
+            u("temp_adc", obj.temp_adc);
+            u("acTime", obj.acTime);
+            u("tot_acTime", msToTime(obj.totAcTime));
+            acTemp = obj.iTemp;
+            document.title = 'AC-' + obj.watt + "W";
+            off();
+          } catch (err) {
+            u("error", err.message);
+            off();
+          }
+          setTimeout(getDate, 1500);
+        }
+      };
+      x.open("GET", "/update", true);
+      x.send();
+    };
+    getDate();
+
+    output.innerHTML = slider.value;
+    slider.oninput = function () { output.innerHTML = this.value };
+    updateAcRange();
+  </script>

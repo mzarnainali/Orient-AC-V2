@@ -1,0 +1,200 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AC Monitor</title>
+    <style>
+        body {
+            text-align: center;
+        }
+
+        div.meter,
+        div.ac {
+            display: inline-grid;
+            gap: 10px;
+        }
+
+        div.meter>div,
+        div.ac>div {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid green;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 2em;
+            background: #eee;
+        }
+
+        div.ac {
+            margin: 0px 50px;
+        }
+
+        div.meter>div:hover,
+        div.ac>div:hover {
+            background: #FFEB3B;
+        }
+
+        #bulb {
+            width: 25px;
+            height: 25px;
+            background: #9E9E9E;
+            border-radius: 100%;
+            position: absolute;
+            top: 25px;
+            right: 25px;
+        }
+
+        #bulb.on {
+            background: #03A9F4;
+        }
+
+        #acRange {
+            width: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="bulb"></div>
+    <div class="meter">
+        <div id="voltage">0 V</div>
+        <div id="Ampere">0 A</div>
+        <div id="watt">0 W | 0 VA <br> 0 PF</div>
+        <div id="kwh">0 KWH</div>
+        <div>Time: <span id="acTime">00:00</span></div>
+        <br>
+        <div id="total_kwh">0 KWH</div>
+        <div><span id="total_acTime"></span></div>
+    </div>
+    <div class="ac">
+        <div>Power:<span id="iPower"></span></div>
+        <div>Mode:<span id="iMode"></span></div>
+        <div>Temp:<span id="iTemp"></span></div>
+        <div>Fan Speed:<span id="iFan"></span></div>
+        <div>SwingV:<span id="iSwingV"></span></div>
+        <div>SwingH:<span id="iSwingH"></span></div>
+        <div>Light:<span id="iLight"></span></div>
+        <div>Clean:<span id="iClean"></span></div>
+        <div>Turbo:<span id="iTurbo"></span></div>
+        <div>iFeel:<span id="iFeel"></span></div>
+    </div>
+    <div class="meter">
+        <div id="temp">0 C</div>
+        <div id="temp_adc">0 C</div>
+    </div>
+    <br><br>
+    <div class="slidecontainer">
+        <input type="range" min="16" max="32" value="26" class="slider" id="acRange">
+        <p>Temp: <span id="acRangeVal"></span></p>
+    </div>
+    <button class="btn" onclick="location.href='/webserial'">Web Serial</button> | <button class="btn"
+        onclick=turnAcOn()>AC On</button> | <button class="btn" onclick="location.href='/acoff'">Ac
+        Off</button>
+    <div id="error"></div>
+    <script>
+        function u(id, val) {
+            document.getElementById(id).innerHTML = val;
+        }
+
+        function off() {
+            setTimeout(() => {
+                document.getElementById("bulb").classList.remove("on");
+            }, 500);
+        }
+
+        function convertMillisecondsToString(ms) {
+            let days, hours, minutes, seconds;
+
+            // Calculate the number of days
+            days = Math.floor(ms / (24 * 60 * 60 * 1000));
+            ms %= (24 * 60 * 60 * 1000);
+
+            // Calculate the number of hours
+            hours = Math.floor(ms / (60 * 60 * 1000));
+            ms %= (60 * 60 * 1000);
+
+            // Calculate the number of minutes
+            minutes = Math.floor(ms / (60 * 1000));
+            ms %= (60 * 1000);
+
+            // Calculate the number of seconds
+            seconds = Math.floor(ms / 1000);
+            ms %= 1000;
+
+            return `${days} day${days !== 1 ? 's' : ''} ${hours} hour${hours !== 1 ? 's' : ''} ${minutes} <br>minute${minutes !== 1 ? 's' : ''} ${seconds} second${seconds !== 1 ? 's' : ''}`;
+        };
+
+        function turnAcOn() {
+            var xhttp = new XMLHttpRequest();
+            var val = document.getElementById("acRange").value;
+            xhttp.open("GET", '/acon?temp=' + val, true);
+            xhttp.send();
+        };
+
+        function updateAcRange() {
+            document.getElementById("acRange").innerText = acTemp;
+            setTimeout(updateAcRange, 5000); // update every 5 seconds
+        };
+
+        var acTemp = 26;
+        function getDate() {
+            var x = new XMLHttpRequest();
+            x.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    try {
+                        document.getElementById("bulb").classList.add("on");
+                        const obj = JSON.parse(x.responseText);
+                        u("voltage", obj.voltage + " V");
+                        u("Ampere", obj.ampere + " A");
+                        var _watt = obj.watt + " W | " + obj.VA + " VA<br>" + obj.powerFactor.toFixed(2) + " PF";
+                        u("watt", _watt);
+                        u("kwh", obj.kwh + " Kwh");
+                        u("total_kwh", "Total " + obj.total_kwh + " Kwh");
+                        u("iPower", obj.iPower);
+                        u("iMode", obj.iMode);
+                        u("iTemp", obj.iTemp + " C");
+                        u("iFan", obj.iFan);
+                        u("iSwingV", obj.iSwingV);
+                        u("iSwingH", obj.iSwingH);
+                        u("iLight", obj.iLight);
+                        u("iClean", obj.iClean);
+                        u("iTurbo", obj.iTurbo);
+                        u("iFeel", obj.iFeel);
+                        u("temp", obj.temp + " C");
+                        u("temp_adc", obj.temp_adc);
+                        u("acTime", obj.acTime);
+                        u("total_acTime", convertMillisecondsToString(obj.totAcTime));
+                        document.title = 'AC-' + obj.watt + "W";
+                        acTemp = obj.iTemp;
+                        off();
+                    } catch (err) {
+                        u("error", err.message);
+                        off();
+                    }
+                    setTimeout(getDate, 1500);
+                }
+            };
+            x.open("GET", "/update", true);
+            x.send();
+        };
+
+        getDate();
+
+
+        var slider = document.getElementById("acRange");
+        var output = document.getElementById("acRangeVal");
+        output.innerHTML = slider.value;
+
+        slider.oninput = function () {
+            output.innerHTML = this.value;
+        };
+
+
+
+        updateAcRange();
+
+    </script>
+</body>
+
+</html>

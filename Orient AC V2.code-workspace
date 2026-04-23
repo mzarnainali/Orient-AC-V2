@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.embeddedhtml": "html",
+			"cmath": "cpp",
+			"*.tcc": "cpp",
+			"deque": "cpp",
+			"list": "cpp",
+			"string": "cpp",
+			"unordered_map": "cpp",
+			"vector": "cpp",
+			"system_error": "cpp",
+			"string_view": "cpp",
+			"regex": "cpp",
+			"limits": "cpp",
+			"array": "cpp",
+			"initializer_list": "cpp",
+			"ranges": "cpp"
+		}
+	}
+}

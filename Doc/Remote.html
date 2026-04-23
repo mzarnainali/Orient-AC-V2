@@ -1,0 +1,91 @@
+<!DOCTYPE HTML><html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AC Monitor</title>
+  <style>
+
+  </style>
+  </head>
+<body>
+
+
+
+<div class="remote">
+<div class="buttons">
+<button class="power">On</button>
+<div><span>Degre </span>
+<input class="degree" type="range" value="26" min="16" max="32" oninput="this.nextElementSibling.value = this.value">
+<output>26</output>
+</div>
+<div class="modes">
+<button class="auto">Auto</button>
+<button class="cool">Cool</button>
+<button class="dry">Dry</button>
+<button class="fan">Fan</button>
+<button class="heat">Heat</button>
+</div>
+<div class="speed">
+<button class="auto">Auto</button>
+<button class="low">Low</button>
+<button class="mid">Mid</button>
+<button class="high">High</button>
+</div>
+<button class="turbo">Turbo Mode</button>
+<button class="swingH">Swing Horizontal</button>
+<button class="swingV">Swing Vertical</button>
+</div>
+</div>
+
+
+<button class="btn" onclick="location.href='/webserial'">Web Serial</button>
+<div id="error"></div>
+
+<script>
+function u(id,val){
+document.getElementById(id).innerHTML = val;
+}
+function off(){
+  setTimeout(() => {document.getElementById("bulb").classList.remove("on");}, 500);   
+}
+function getDate() {
+  
+  var x = new XMLHttpRequest();
+  x.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      try {
+	      document.getElementById("bulb").classList.add("on");
+            const obj = JSON.parse(x.responseText);
+            u("voltage",obj.voltage + " V");
+            u("Ampere",obj.ampere+ " A");
+            u("watt",obj.watt+ " W");
+            u("kwh", obj.kwh+ " Kwh");
+            u("iPower",obj.iPower);
+            u("iMode",obj.iMode);
+			u("iTemp",obj.iTemp+" C");
+            u("iFan",obj.iFan);
+            u("iSwingV",obj.iSwingV);
+			u("iSwingH",obj.iSwingH);
+            u("iLight",obj.iLight);
+            u("iClean",obj.iClean);
+			u("iTurbo",obj.iTurbo);
+            u("iFeel",obj.iFeel);
+            u("temp",obj.temp+" C");
+			u("acTime",obj.acTime);
+            document.title ='AC Monitor';
+			off();    
+			}
+      catch(err) {
+	    u("error",err.message);
+		off(); 
+      }
+	  
+      setTimeout(getDate, 1500);
+    }
+};
+x.open("GET", "/update", true);
+x.send();
+};
+getDate();
+</script>
+</body>
+</html>
